@@ -2,9 +2,20 @@ import socket
 import threading
 import struct
 
+HEADER_SIZE = 32
+MAX_ROOM_NAME_SIZE = 28
+MAX_PAYLOAD_SIZE = 229
+
+# Define operations
+OPERATION_CREATE = 1
+OPERATION_JOIN = 2
+OPERATION_MESSAGE = 3
+
+STATE_OK = 0
+STATE_ERROR = 1
 
 HOST = "127.0.0.1"
-PORT = 65432
+PORT = 65420
 def receive_messages(sock):
     while True:
         try:
@@ -16,6 +27,22 @@ def receive_messages(sock):
         except Exception as e:
             print(f"Error: {e}")
             break
+
+def create_packet(room_name, operation, state, payload):
+    if len(room_name) > MAX_ROOM_NAME_SIZE:
+        raise ValueError("Room name exceeds maximum size")
+    if len(payload) > MAX_PAYLOAD_SIZE:
+        raise ValueError("Payload exceeds maximum size")
+
+    room_name_size = len(room_name)
+    operation_payload_size = len(payload)
+    header = struct.pack(
+        "!BBB29s", room_name_size, operation, state, bytes(payload[:29], 'utf-8')
+    )
+    body = room_name.encode('utf-8') + payload[:229].encode('utf-8')
+
+    return header + body
+
 
 def create_message(username, message):
     username_len = len(username).to_bytes(1, byteorder='big')
